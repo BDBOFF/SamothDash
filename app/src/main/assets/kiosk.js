@@ -15,7 +15,10 @@
 
   var DRAWER_CSS =
     'aside.mdc-drawer{display:none!important}' +
-    ':host{--mdc-drawer-width:0px!important}' +
+    // HA récents : .sidebar-shell / .app-content. HA plus anciens : .mdc-drawer.
+    ':host{--mdc-drawer-width:0px!important;--ha-sidebar-width:0px!important}' +
+    '.sidebar-shell,wa-drawer{display:none!important}' +
+    '.app-content{padding:0!important;width:100%!important}' +
     '.mdc-drawer-app-content{margin:0!important;padding:0!important;width:100%!important}' +
     '.mdc-drawer-scrim{display:none!important}';
   var HEADER_CSS =
