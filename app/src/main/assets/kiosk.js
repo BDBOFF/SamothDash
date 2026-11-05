@@ -72,7 +72,7 @@
     closeAlert();
     overlay = document.createElement('div');
     overlay.id = 'samoth-alert';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:#000;';
     var img = document.createElement('img');
     img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
     img.src = '/api/camera_proxy_stream/camera.' + name + '?token=' + encodeURIComponent(state.attributes.access_token || '');
