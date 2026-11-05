@@ -19,6 +19,7 @@
     '.mdc-drawer-app-content{margin:0!important;padding:0!important;width:100%!important}' +
     '.mdc-drawer-scrim{display:none!important}';
   var HEADER_CSS =
+    ':host{--header-height:0px!important}' +
     '.header{display:none!important}' +
     '#view,hui-view-container{padding-top:0!important;min-height:100vh!important}';
 
@@ -30,7 +31,15 @@
       if (!e.shadowRoot) continue;
       var n = e.tagName;
       if (n === 'HA-DRAWER') setStyle(e.shadowRoot, current.sidebar ? DRAWER_CSS : '');
-      if (n === 'HUI-ROOT') setStyle(e.shadowRoot, current.header ? HEADER_CSS : '');
+      if (n === 'HUI-ROOT') {
+        setStyle(e.shadowRoot, current.header ? HEADER_CSS : '');
+        // Le panneau parent place aussi des éléments sous la barre du haut
+        var panel = e.getRootNode().host;
+        if (panel) {
+          if (current.header) panel.style.setProperty('--header-height', '0px');
+          else panel.style.removeProperty('--header-height');
+        }
+      }
       // Inutile de descendre dans les cartes
       if (n === 'HUI-ROOT' || n === 'HA-SIDEBAR' || depth > 8) continue;
       apply(e.shadowRoot, depth + 1);
