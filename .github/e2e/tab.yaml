@@ -1,0 +1,9 @@
+views:
+  - title: Cameras
+    cards:
+      - type: picture-entity
+        entity: camera.demo_camera
+        camera_view: live
+      - type: entities
+        title: Maison
+        entities: [input_boolean.personne]

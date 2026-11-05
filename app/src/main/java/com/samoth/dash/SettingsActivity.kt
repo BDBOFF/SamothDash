@@ -1,7 +1,9 @@
 package com.samoth.dash
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
@@ -43,6 +45,7 @@ class SettingsActivity : Activity() {
     private lateinit var infoText: TextView
     private lateinit var updateTile: View
     private lateinit var updateLabel: TextView
+    private lateinit var motionToggle: View
     private var update: UpdateInfo? = null
     private var updating = false
     private val main = Handler(Looper.getMainLooper())
@@ -122,6 +125,32 @@ class SettingsActivity : Activity() {
         }
     }
 
+    /** Choix en pastilles, ex. 1 min / 5 min. */
+    private fun chips(s: String, options: List<Pair<Int, String>>, value: Int, set: (Int) -> Unit): View {
+        val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        row.addView(text(s, 14f, MUTED), LinearLayout.LayoutParams(0, -2, 1f))
+        var selected = value
+        val views = ArrayList<Pair<Int, TextView>>()
+        fun paint() = views.forEach { (v, t) ->
+            t.background = if (v == selected) round(RED, 99) else glass(99)
+            t.setTextColor(if (v == selected) Color.WHITE else MUTED)
+        }
+        options.forEach { (v, label) ->
+            val t = text(label, 13f, MUTED, medium).apply {
+                setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
+                setOnClickListener {
+                    selected = v
+                    set(v)
+                    paint()
+                }
+            }
+            views.add(v to t)
+            row.addView(t, LinearLayout.LayoutParams(-2, -2).apply { marginStart = 6.dp() })
+        }
+        paint()
+        return row.apply { setPadding(0, 4.dp(), 0, 8.dp()) }
+    }
+
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         background = glass(22)
@@ -134,7 +163,7 @@ class SettingsActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             background = glass(16, clickable = true)
             setPadding(16.dp(), 16.dp(), 16.dp(), 16.dp())
-            minimumHeight = 104.dp()
+            minimumHeight = 92.dp()
             isClickable = true
             setOnClickListener { action() }
             addView(ImageView(this@SettingsActivity).apply {
@@ -202,6 +231,21 @@ class SettingsActivity : Activity() {
             addView(toggle("Garder l'écran allumé", prefs.keepScreenOn) { prefs.keepScreenOn = it })
         }
 
+        val monitor = card().apply {
+            addView(text("Surveillance", 16f, TEXT, medium))
+            addView(toggle("Relancer les flux figés", prefs.watchdog) { prefs.watchdog = it })
+            addView(chips("Recharger aussi toutes les", listOf(0 to "Jamais", 15 to "15 min", 30 to "30 min", 60 to "1 h"), prefs.reloadMinutes) { prefs.reloadMinutes = it })
+            addView(toggle("Alerte plein écran si personne détectée", prefs.personAlert) { prefs.personAlert = it })
+            motionToggle = toggle("Veille et réveil à l'approche", prefs.motionWake) { on ->
+                prefs.motionWake = on
+                if (on && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(Manifest.permission.CAMERA), 1)
+                }
+            }
+            addView(motionToggle)
+            addView(chips("Mettre en veille après", listOf(1 to "1 min", 2 to "2 min", 5 to "5 min", 10 to "10 min"), prefs.sleepMinutes) { prefs.sleepMinutes = it })
+        }
+
         // Colonne droite : bouton principal et tuiles
         val primary = LinearLayout(this).apply {
             gravity = Gravity.CENTER
@@ -241,6 +285,7 @@ class SettingsActivity : Activity() {
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(primary)
+            addView(monitor, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 12.dp() })
             addView(grid, LinearLayout.LayoutParams(-1, -2).apply {
                 topMargin = 7.dp()
                 marginStart = (-5).dp()
@@ -281,6 +326,13 @@ class SettingsActivity : Activity() {
             })
         })
         checkUpdate()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        if (requestCode == 1 && grantResults.firstOrNull() != PackageManager.PERMISSION_GRANTED) {
+            ((motionToggle as LinearLayout).getChildAt(1) as Switch).isChecked = false
+            Toast.makeText(this, "Sans la caméra, le réveil à l'approche est impossible", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

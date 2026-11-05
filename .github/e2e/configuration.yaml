@@ -1,0 +1,21 @@
+homeassistant:
+  name: Test
+frontend:
+mobile_app:
+http:
+  server_port: 8123
+demo:
+input_boolean:
+  personne:
+    name: Personne
+template:
+  - binary_sensor:
+      - name: demo_camera_person_occupancy
+        state: "{{ is_state('input_boolean.personne', 'on') }}"
+lovelace:
+  dashboards:
+    tab-test:
+      mode: yaml
+      filename: tab.yaml
+      title: Tablette
+      show_in_sidebar: true

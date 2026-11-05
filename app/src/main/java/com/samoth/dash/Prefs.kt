@@ -20,6 +20,25 @@ class Prefs(context: Context) {
     var keepScreenOn: Boolean
         get() = p.getBoolean("keepOn", true)
         set(v) = p.edit().putBoolean("keepOn", v).apply()
+    /** Recharge le dashboard si une vidéo reste figée. */
+    var watchdog: Boolean
+        get() = p.getBoolean("watchdog", true)
+        set(v) = p.edit().putBoolean("watchdog", v).apply()
+    /** Rechargement périodique en minutes, 0 = jamais. */
+    var reloadMinutes: Int
+        get() = p.getInt("reloadMinutes", 60)
+        set(v) = p.edit().putInt("reloadMinutes", v).apply()
+    /** Plein écran quand une caméra Frigate détecte une personne. */
+    var personAlert: Boolean
+        get() = p.getBoolean("personAlert", true)
+        set(v) = p.edit().putBoolean("personAlert", v).apply()
+    /** Écran assombri sans présence, réveil par la caméra frontale. */
+    var motionWake: Boolean
+        get() = p.getBoolean("motionWake", false)
+        set(v) = p.edit().putBoolean("motionWake", v).apply()
+    var sleepMinutes: Int
+        get() = p.getInt("sleepMinutes", 5)
+        set(v) = p.edit().putInt("sleepMinutes", v).apply()
     var deviceName: String
         get() = p.getString("deviceName", "") ?: ""
         set(v) = p.edit().putString("deviceName", v).apply()

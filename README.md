@@ -26,6 +26,14 @@ La tablette apparaît dans *Paramètres → Appareils → Mobile App* (nom « Ta
 
 Envoi à chaque changement et au moins chaque minute. Rien à configurer côté HA tant que `default_config` ou `mobile_app` est actif.
 
+## Surveillance
+
+Chaque fonction a son interrupteur dans les réglages :
+
+- **Flux figés** : recharge si une vidéo ne progresse plus pendant une minute, et à intervalle régulier au choix (utile pour les flux qu'on ne peut pas analyser).
+- **Alerte plein écran** : 30 s en plein écran quand `binary_sensor.X_person_occupancy` passe à `on` et que `camera.X` existe (noms de l'intégration Frigate). Un appui ferme.
+- **Veille et réveil à l'approche** : écran noir et rétroéclairage au minimum sans présence ; la caméra frontale, un toucher ou une alerte le rallument. Il faut un peu de lumière pour détecter un mouvement.
+
 ## Technique
 
 Kotlin, sans Compose · minSdk 26 (Android 8). Frontend HA en mode `external_auth`, comme l'appli officielle.

@@ -49,7 +49,96 @@
     }
   }
 
-  function tick() { try { apply(document, 0); } catch (err) {} }
+  // --- Alerte plein écran : binary_sensor.X_person_occupancy (Frigate) + camera.X ---
+  var occupancy = null;
+  var overlay = null;
+  var closeTimer = null;
+
+  function dash(method, arg) {
+    try { if (window.samothDash) window.samothDash[method](arg); } catch (err) {}
+  }
+
+  function closeAlert() {
+    if (closeTimer) clearTimeout(closeTimer);
+    closeTimer = null;
+    if (!overlay) return;
+    overlay.querySelector('img').src = ''; // coupe le flux
+    overlay.remove();
+    overlay = null;
+    dash('alertState', false);
+  }
+
+  function showAlert(name, state) {
+    closeAlert();
+    overlay = document.createElement('div');
+    overlay.id = 'samoth-alert';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;';
+    var img = document.createElement('img');
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+    img.src = '/api/camera_proxy_stream/camera.' + name + '?token=' + encodeURIComponent(state.attributes.access_token || '');
+    var tag = document.createElement('div');
+    tag.textContent = 'Personne détectée · ' + (state.attributes.friendly_name || name);
+    tag.style.cssText = 'position:absolute;top:20px;left:20px;padding:10px 18px;border-radius:99px;' +
+      'background:#D10A20;color:#fff;font:600 18px sans-serif;';
+    overlay.appendChild(img);
+    overlay.appendChild(tag);
+    overlay.addEventListener('click', closeAlert);
+    document.body.appendChild(overlay);
+    dash('alertState', true);
+    dash('log', 'alerte ' + name);
+    closeTimer = setTimeout(closeAlert, 30000);
+  }
+
+  function checkAlerts() {
+    var ha = document.querySelector('home-assistant');
+    var states = ha && ha.hass && ha.hass.states;
+    if (!states) return;
+    var next = {};
+    var trigger = null;
+    for (var id in states) {
+      var m = /^binary_sensor\.(.+)_person_occupancy$/.exec(id);
+      if (!m || !states['camera.' + m[1]]) continue;
+      next[m[1]] = states[id].state;
+      if (occupancy && occupancy[m[1]] !== 'on' && states[id].state === 'on') trigger = m[1];
+    }
+    occupancy = next; // au chargement, une détection déjà en cours ne déclenche rien
+    if (trigger && current.alert) showAlert(trigger, states['camera.' + trigger]);
+    if (!current.alert) closeAlert();
+  }
+
+  // --- Flux figés : vidéo qui ne progresse plus pendant une minute ---
+  var positions = new Map();
+  var ticks = 0;
+
+  function videos(root, out, depth) {
+    var all = root.querySelectorAll('*');
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].tagName === 'VIDEO') out.push(all[i]);
+      if (all[i].shadowRoot && depth < 25) videos(all[i].shadowRoot, out, depth + 1);
+    }
+    return out;
+  }
+
+  function checkVideos() {
+    if (!current.watchdog || overlay) return;
+    var seen = new Map();
+    var stuck = false;
+    videos(document, [], 0).forEach(function (v) {
+      if (v.paused || v.ended) return;
+      var old = positions.get(v);
+      var count = old && old.t === v.currentTime ? old.n + 1 : 0;
+      seen.set(v, { t: v.currentTime, n: count });
+      if (count >= 4) stuck = true;
+    });
+    positions = seen;
+    if (stuck) { positions = new Map(); dash('videoStuck'); }
+  }
+
+  function tick() {
+    try { apply(document, 0); } catch (err) {}
+    try { checkAlerts(); } catch (err) {}
+    if (++ticks % 15 === 0) { try { checkVideos(); } catch (err) {} }
+  }
   window.__samothKiosk = function (c) { current = c; tick(); };
   tick();
   setInterval(tick, 1000);

@@ -1,8 +1,10 @@
 package com.samoth.dash
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
@@ -10,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -43,6 +46,31 @@ class MainActivity : Activity() {
     private var swipeY = 0f
     private val retry = Runnable { openDashboard() }
 
+    // Veille : écran noir et rétroéclairage au minimum, la page et les détections continuent
+    private lateinit var sleepCover: View
+    private var sleeping = false
+    private var swallowTouch = false
+    private var alertActive = false
+    private var lastActivity = 0L
+    private var lastReload = 0L
+    private var motion: MotionDetector? = null
+
+    private val idleCheck = object : Runnable {
+        override fun run() {
+            val delay = prefs.sleepMinutes * 60_000L
+            if (prefs.motionWake && !sleeping && !alertActive && System.currentTimeMillis() - lastActivity > delay) goToSleep()
+            main.postDelayed(this, 5_000)
+        }
+    }
+
+    private val periodicReload = object : Runnable {
+        override fun run() {
+            val minutes = prefs.reloadMinutes
+            if (minutes > 0 && !alertActive) reloadDashboard("périodique")
+            schedulePeriodicReload()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
@@ -57,6 +85,11 @@ class MainActivity : Activity() {
             visibility = View.GONE
         }
         root.addView(message, FrameLayout.LayoutParams(-1, -1))
+        sleepCover = View(this).apply {
+            setBackgroundColor(Color.BLACK)
+            visibility = View.GONE
+        }
+        root.addView(sleepCover, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
         if (Build.VERSION.SDK_INT >= 29) {
             root.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
@@ -76,7 +109,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         immersive()
-        if (prefs.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (prefs.keepScreenOn || prefs.motionWake) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (prefs.dashboardUrl.isBlank()) {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -85,6 +118,66 @@ class MainActivity : Activity() {
         BatteryService.start(this)
         if (loadedUrl != prefs.dashboardUrl || web == null || prefs.refreshToken == null) openDashboard()
         else injectKiosk()
+        startPresence()
+        schedulePeriodicReload()
+    }
+
+    override fun onPause() {
+        main.removeCallbacks(idleCheck)
+        main.removeCallbacks(periodicReload)
+        motion?.stop()
+        motion = null
+        wakeUp("pause")
+        super.onPause()
+    }
+
+    private fun startPresence() {
+        lastActivity = System.currentTimeMillis()
+        main.removeCallbacks(idleCheck)
+        if (!prefs.motionWake) return
+        main.postDelayed(idleCheck, 5_000)
+        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            motion = MotionDetector(this) {
+                lastActivity = System.currentTimeMillis()
+                if (sleeping) wakeUp("mouvement")
+            }.also { it.start() }
+        } else {
+            Log.i(TAG, "caméra non autorisée : réveil au toucher uniquement")
+        }
+    }
+
+    private fun goToSleep() {
+        sleeping = true
+        sleepCover.visibility = View.VISIBLE
+        sleepCover.bringToFront()
+        window.attributes = window.attributes.apply { screenBrightness = 0.01f }
+        Log.i(TAG, "veille")
+    }
+
+    private fun wakeUp(reason: String) {
+        lastActivity = System.currentTimeMillis()
+        if (!sleeping) return
+        sleeping = false
+        sleepCover.visibility = View.GONE
+        window.attributes = window.attributes.apply {
+            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+        Log.i(TAG, "réveil : $reason")
+    }
+
+    private fun schedulePeriodicReload() {
+        main.removeCallbacks(periodicReload)
+        val minutes = prefs.reloadMinutes
+        if (minutes > 0) main.postDelayed(periodicReload, minutes * 60_000L)
+    }
+
+    /** Toujours via openDashboard : voir la remarque sur external_auth. */
+    private fun reloadDashboard(reason: String) {
+        val now = System.currentTimeMillis()
+        if (web == null || prefs.refreshToken == null || now - lastReload < MIN_RELOAD_MS) return
+        lastReload = now
+        Log.i(TAG, "rechargement : $reason")
+        openDashboard()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -110,6 +203,13 @@ class MainActivity : Activity() {
 
     /** Glisser du bord gauche vers la droite : ouvre les réglages. Le reste du tactile va au tableau de bord. */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            lastActivity = System.currentTimeMillis()
+            // Le toucher qui réveille n'appuie pas sur le tableau de bord
+            swallowTouch = sleeping
+            if (sleeping) wakeUp("toucher")
+        }
+        if (swallowTouch) return true
         val density = resources.displayMetrics.density
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -167,6 +267,7 @@ class MainActivity : Activity() {
             builtInZoomControls = false
         }
         w.addJavascriptInterface(Bridge(), "externalApp")
+        w.addJavascriptInterface(DashBridge(), "samothDash")
         w.webViewClient = Client()
         root.addView(w, 0, FrameLayout.LayoutParams(-1, -1))
         web = w
@@ -222,6 +323,7 @@ class MainActivity : Activity() {
 
     private fun injectKiosk() {
         val cfg = JSONObject().put("sidebar", prefs.hideSidebar).put("header", prefs.hideHeader)
+            .put("alert", prefs.personAlert).put("watchdog", prefs.watchdog)
         val js = assets.open("kiosk.js").bufferedReader().use { it.readText() }.replace("__CFG__", cfg.toString())
         web?.evaluateJavascript(js, null)
     }
@@ -274,6 +376,32 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Appels du script de kiosque vers l'appli. Ne donne accès à aucune donnée. */
+    private inner class DashBridge {
+        @JavascriptInterface
+        fun alertState(active: Boolean) {
+            main.post {
+                alertActive = active
+                wakeUp("alerte")
+            }
+        }
+
+        @JavascriptInterface
+        fun videoStuck(ignored: String?) = videoStuckNow()
+
+        @JavascriptInterface
+        fun videoStuck() = videoStuckNow()
+
+        private fun videoStuckNow() {
+            main.post { if (prefs.watchdog && !alertActive) reloadDashboard("vidéo figée") }
+        }
+
+        @JavascriptInterface
+        fun log(text: String) {
+            Log.i(TAG, text.take(100))
+        }
+    }
+
     /** Protocole utilisé par l'appli officielle : window.externalApp, appelé par le frontend HA. */
     private inner class Bridge {
         @JavascriptInterface
@@ -314,6 +442,8 @@ class MainActivity : Activity() {
     }
 
     companion object {
+        private const val TAG = "SamothDash"
+        private const val MIN_RELOAD_MS = 2 * 60_000L
         private const val RETRY_MS = 15_000L
         private const val EDGE_DP = 32
         private const val SWIPE_DP = 120

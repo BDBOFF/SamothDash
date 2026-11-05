@@ -22,7 +22,22 @@ jobs:
           curl -fsSL --retry 4 -o app/src/main/assets/fonts/unbounded.ttf "https://github.com/google/fonts/raw/main/ofl/unbounded/Unbounded%5Bwght%5D.ttf"
           curl -fsSL --retry 4 -o app/src/main/assets/fonts/inter.ttf "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
       - name: Compiler
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Lancer un Home Assistant de test
+        run: |
+          python -m venv /tmp/ha
+          /tmp/ha/bin/pip install -q homeassistant home-assistant-frontend pymicro-vad pyspeex-noise
+          mkdir -p /tmp/cfg/.storage
+          cp .github/e2e/configuration.yaml .github/e2e/tab.yaml /tmp/cfg/
+          echo '{"version":4,"minor_version":1,"key":"onboarding","data":{"done":["user","core_config","integration","analytics"]}}' > /tmp/cfg/.storage/onboarding
+          /tmp/ha/bin/python -m homeassistant --script auth -c /tmp/cfg add samoth motdepasse
+          nohup /tmp/ha/bin/python -m homeassistant -c /tmp/cfg > /tmp/ha.log 2>&1 &
+          for i in $(seq 1 100); do curl -fs -o /dev/null http://127.0.0.1:8123/manifest.json && break; sleep 5; done
+          sleep 30
+          python3 .github/e2e/ha.py states
       - name: Activer KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -35,6 +50,7 @@ jobs:
           target: google_apis
           profile: pixel_c
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-front emulated
           script: bash .github/preview.sh
       - uses: actions/upload-artifact@v4
         if: always()
@@ -44,6 +60,7 @@ jobs:
       - name: Publier les captures sur la branche apercu
         if: always()
         run: |
+          cp /tmp/ha.log shots/ha.log || true
           cd shots
           git init -q -b apercu
           git add -A
