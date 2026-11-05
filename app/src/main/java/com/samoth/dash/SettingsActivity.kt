@@ -264,13 +264,14 @@ class SettingsActivity : Activity() {
         val grid = GridLayout(this).apply {
             columnCount = 2
             val tiles = listOf(
-                updateTile,
+                tile(R.drawable.ic_tablet, "Paramètres Android") { startActivity(Intent(Settings.ACTION_SETTINGS)) },
                 tile(R.drawable.ic_battery, "Envoi en veille") { askBatteryExemption() },
                 tile(R.drawable.ic_home, "Écran d'accueil") {
                     runCatching { startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
                 },
-                tile(R.drawable.ic_tablet, "Paramètres Android") { startActivity(Intent(Settings.ACTION_SETTINGS)) },
                 tile(R.drawable.ic_logout, "Se déconnecter", danger = true) { logout() },
+                // En dernier : masquée sans mise à jour, elle ne laisse aucun trou
+                updateTile,
             )
             tiles.forEach { t ->
                 addView(t, GridLayout.LayoutParams(
