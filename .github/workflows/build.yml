@@ -25,6 +25,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Télécharger les polices (Unbounded, Inter — licence OFL)
+        run: |
+          mkdir -p app/src/main/assets/fonts
+          curl -fsSL --retry 4 -o app/src/main/assets/fonts/unbounded.ttf "https://github.com/google/fonts/raw/main/ofl/unbounded/Unbounded%5Bwght%5D.ttf"
+          curl -fsSL --retry 4 -o app/src/main/assets/fonts/inter.ttf "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+
       - name: Compiler l'APK
         run: |
           chmod +x gradlew

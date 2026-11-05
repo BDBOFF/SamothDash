@@ -38,8 +38,9 @@ class MainActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private var loadedUrl: String? = null
     private var pageFailed = false
-    private var cornerTaps = 0
-    private var lastCornerTap = 0L
+    private var swipeArmed = false
+    private var swipeX = 0f
+    private var swipeY = 0f
     private val retry = Runnable { openDashboard() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +58,14 @@ class MainActivity : Activity() {
         }
         root.addView(message, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
+        if (Build.VERSION.SDK_INT >= 29) {
+            root.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                val w = (EDGE_DP * resources.displayMetrics.density).toInt()
+                val h = (200 * resources.displayMetrics.density).toInt()
+                val top = (v.height - h) / 2
+                v.systemGestureExclusionRects = listOf(android.graphics.Rect(0, top, w, top + h))
+            }
+        }
         window.attributes = window.attributes.apply {
             if (Build.VERSION.SDK_INT >= 28) {
                 layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -99,19 +108,30 @@ class MainActivity : Activity() {
         }
     }
 
-    /** 5 appuis rapides dans le coin haut gauche : ouvre les réglages. */
+    /** Glisser du bord gauche vers la droite : ouvre les réglages. Le reste du tactile va au tableau de bord. */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
-            val size = 120 * resources.displayMetrics.density
-            if (ev.x < size && ev.y < size) {
-                val now = System.currentTimeMillis()
-                cornerTaps = if (now - lastCornerTap < 800) cornerTaps + 1 else 1
-                lastCornerTap = now
-                if (cornerTaps >= 5) {
-                    cornerTaps = 0
+        val density = resources.displayMetrics.density
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                swipeArmed = ev.x < EDGE_DP * density
+                swipeX = ev.x
+                swipeY = ev.y
+            }
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> swipeArmed = false
+            MotionEvent.ACTION_MOVE -> if (swipeArmed) {
+                val dx = ev.x - swipeX
+                val dy = Math.abs(ev.y - swipeY)
+                if (dy > 60 * density && dy > dx) swipeArmed = false
+                if (dx > SWIPE_DP * density && dy < dx) {
+                    swipeArmed = false
+                    // Annule le geste côté page pour éviter un appui fantôme sur une caméra
+                    val cancel = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+                    super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
                     startActivity(Intent(this, SettingsActivity::class.java))
+                    return true
                 }
-            } else cornerTaps = 0
+            }
         }
         return super.dispatchTouchEvent(ev)
     }
@@ -178,7 +198,7 @@ class MainActivity : Activity() {
 
     private fun failAndRetry(text: String) {
         pageFailed = true
-        showMessage("$text\n\nNouvel essai automatique…\n\n(5 appuis dans le coin haut gauche pour les réglages)")
+        showMessage("$text\n\nNouvel essai automatique…\n\n(glisser depuis le bord gauche pour les réglages)")
         main.removeCallbacks(retry)
         main.postDelayed(retry, RETRY_MS)
     }
@@ -295,6 +315,8 @@ class MainActivity : Activity() {
 
     companion object {
         private const val RETRY_MS = 15_000L
+        private const val EDGE_DP = 32
+        private const val SWIPE_DP = 120
         private val CALLBACK = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
     }
 }

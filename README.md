@@ -12,7 +12,7 @@ Affiche un tableau de bord Home Assistant en plein écran, sans barre de gauche 
 2. Saisir l'adresse du tableau de bord, par exemple `http://192.168.1.10:8123/lovelace/0`.
 3. Se connecter à HA (une seule fois) et accepter l'envoi en veille.
 
-**Réglages** : 5 appuis rapides dans le coin haut gauche.
+**Réglages** : glisser du bord gauche de l'écran vers la droite.
 
 **Démarrage automatique** : Réglages → *Choisir comme écran d'accueil*.
 

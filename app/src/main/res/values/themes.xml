@@ -4,7 +4,7 @@
         <item name="android:colorAccent">#D10A20</item>
     </style>
     <style name="Theme.Dash.Settings" parent="@android:style/Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#111111</item>
+        <item name="android:windowBackground">#07070A</item>
         <item name="android:colorAccent">#D10A20</item>
     </style>
 </resources>
