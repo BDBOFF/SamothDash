@@ -18,6 +18,9 @@ prefs() { # $1 = motionWake
 <boolean name="motionWake" value="$1" />
 <int name="sleepMinutes" value="1" />
 <int name="reloadMinutes" value="$2" />
+<boolean name="sleepSchedule" value="${3:-false}" />
+<int name="sleepFrom" value="${4:-1260}" />
+<int name="sleepTo" value="${5:-360}" />
 </map>
 X
   B=$(base64 -w0 /tmp/dash.xml)
@@ -31,6 +34,30 @@ adb shell settings put system user_rotation 1
 adb shell settings put system accelerometer_rotation 0
 adb shell pm grant $PKG android.permission.CAMERA
 adb logcat -c
+
+nowmin() { D=$(adb shell date +%H:%M | tr -d '\r'); echo $(( 10#${D%:*} * 60 + 10#${D#*:} )); }
+
+say "0a. Plage à venir, caméra autorisée : pas de détection avant le début, puis détection, puis arrêt à la fin"
+N=$(nowmin)
+prefs true 0 true $(( (N + 2) % 1440 )) $(( (N + 4) % 1440 ))
+echo "maintenant=$N" >> $R
+adb shell am start -n $PKG/.MainActivity
+sleep 300
+shot 0a-apres-plage; adb logcat -d -s SamothDash:I | grep -v -E 'beginning|mouvement' >> $R; adb logcat -c
+
+say "0b. Dans la plage, sans caméra : veille, puis réveil automatique à la fin de la plage"
+adb shell am force-stop $PKG
+adb shell pm revoke $PKG android.permission.CAMERA
+N=$(nowmin)
+prefs true 0 true $(( (N + 1439) % 1440 )) $(( (N + 3) % 1440 ))
+echo "maintenant=$N" >> $R
+adb shell am start -n $PKG/.MainActivity
+sleep 100
+shot 0b-veille-dans-plage
+sleep 110
+shot 0c-reveil-fin-plage; logs
+adb shell am force-stop $PKG
+adb shell pm grant $PKG android.permission.CAMERA
 
 say "1. Dashboard, barres masquées, batterie, détection caméra (faux flux en mouvement : doit rester éveillé)"
 prefs true 0

@@ -39,6 +39,26 @@ class Prefs(context: Context) {
     var sleepMinutes: Int
         get() = p.getInt("sleepMinutes", 5)
         set(v) = p.edit().putInt("sleepMinutes", v).apply()
+    /** Limite la veille à une plage horaire ; en dehors, l'écran reste allumé. */
+    var sleepSchedule: Boolean
+        get() = p.getBoolean("sleepSchedule", false)
+        set(v) = p.edit().putBoolean("sleepSchedule", v).apply()
+    /** Minutes depuis minuit. */
+    var sleepFrom: Int
+        get() = p.getInt("sleepFrom", 21 * 60)
+        set(v) = p.edit().putInt("sleepFrom", v).apply()
+    var sleepTo: Int
+        get() = p.getInt("sleepTo", 6 * 60)
+        set(v) = p.edit().putInt("sleepTo", v).apply()
+
+    /** La plage peut passer minuit, ex. 21:00 à 06:00. Début = fin : toute la journée. */
+    fun sleepAllowedNow(): Boolean {
+        if (!sleepSchedule || sleepFrom == sleepTo) return true
+        val c = java.util.Calendar.getInstance()
+        val now = c.get(java.util.Calendar.HOUR_OF_DAY) * 60 + c.get(java.util.Calendar.MINUTE)
+        return if (sleepFrom < sleepTo) now in sleepFrom until sleepTo else now >= sleepFrom || now < sleepTo
+    }
+
     var deviceName: String
         get() = p.getString("deviceName", "") ?: ""
         set(v) = p.edit().putString("deviceName", v).apply()

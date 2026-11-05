@@ -32,7 +32,7 @@ Chaque fonction a son interrupteur dans les réglages :
 
 - **Flux figés** : recharge si une vidéo ne progresse plus pendant une minute, et à intervalle régulier au choix (utile pour les flux qu'on ne peut pas analyser).
 - **Alerte plein écran** : 30 s en plein écran quand `binary_sensor.X_person_occupancy` passe à `on` et que `camera.X` existe (noms de l'intégration Frigate). Un appui ferme.
-- **Veille et réveil à l'approche** : écran noir et rétroéclairage au minimum sans présence ; la caméra frontale, un toucher ou une alerte le rallument. Il faut un peu de lumière pour détecter un mouvement.
+- **Veille et réveil à l'approche** : écran noir et rétroéclairage au minimum sans présence ; la caméra frontale, un toucher ou une alerte le rallument. Il faut un peu de lumière pour détecter un mouvement. La veille peut être limitée à une plage horaire (ex. 21:00 à 06:00) : en dehors, l'écran reste allumé et la caméra frontale est coupée.
 
 ## Technique
 

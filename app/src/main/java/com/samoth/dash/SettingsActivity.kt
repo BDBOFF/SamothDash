@@ -2,6 +2,7 @@ package com.samoth.dash
 
 import android.Manifest
 import android.app.Activity
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -151,6 +152,32 @@ class SettingsActivity : Activity() {
         return row.apply { setPadding(0, 4.dp(), 0, 8.dp()) }
     }
 
+    private fun hhmm(minutes: Int) = String.format("%02d:%02d", minutes / 60, minutes % 60)
+
+    /** Pastille qui ouvre le choix de l'heure. */
+    private fun timeChip(value: Int, set: (Int) -> Unit) = text(hhmm(value), 14f, TEXT, medium).apply {
+        background = glass(99, clickable = true)
+        setPadding(16.dp(), 8.dp(), 16.dp(), 8.dp())
+        var current = value
+        setOnClickListener {
+            TimePickerDialog(this@SettingsActivity, android.R.style.Theme_Material_Dialog_Alert, { _, h, m ->
+                current = h * 60 + m
+                text = hhmm(current)
+                set(current)
+            }, current / 60, current % 60, true).show()
+        }
+    }
+
+    private fun scheduleRow() = LinearLayout(this).apply {
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(0, 4.dp(), 0, 8.dp())
+        addView(text("Veille active", 14f, MUTED), LinearLayout.LayoutParams(0, -2, 1f))
+        addView(text("de", 14f, MUTED).apply { setPadding(0, 0, 8.dp(), 0) })
+        addView(timeChip(prefs.sleepFrom) { prefs.sleepFrom = it })
+        addView(text("à", 14f, MUTED).apply { setPadding(8.dp(), 0, 8.dp(), 0) })
+        addView(timeChip(prefs.sleepTo) { prefs.sleepTo = it })
+    }
+
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         background = glass(22)
@@ -243,6 +270,8 @@ class SettingsActivity : Activity() {
                 }
             }
             addView(motionToggle)
+            addView(toggle("Seulement sur une plage horaire", prefs.sleepSchedule) { prefs.sleepSchedule = it })
+            addView(scheduleRow())
             addView(chips("Mettre en veille après", listOf(1 to "1 min", 2 to "2 min", 5 to "5 min", 10 to "10 min"), prefs.sleepMinutes) { prefs.sleepMinutes = it })
         }
 

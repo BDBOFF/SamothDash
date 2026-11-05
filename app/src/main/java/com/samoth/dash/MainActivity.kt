@@ -54,11 +54,13 @@ class MainActivity : Activity() {
     private var lastActivity = 0L
     private var lastReload = 0L
     private var motion: MotionDetector? = null
+    private var inSleepWindow = false
 
     private val idleCheck = object : Runnable {
         override fun run() {
+            updateSleepWindow()
             val delay = prefs.sleepMinutes * 60_000L
-            if (prefs.motionWake && !sleeping && !alertActive && System.currentTimeMillis() - lastActivity > delay) goToSleep()
+            if (inSleepWindow && !sleeping && !alertActive && System.currentTimeMillis() - lastActivity > delay) goToSleep()
             main.postDelayed(this, 5_000)
         }
     }
@@ -134,8 +136,29 @@ class MainActivity : Activity() {
     private fun startPresence() {
         lastActivity = System.currentTimeMillis()
         main.removeCallbacks(idleCheck)
+        inSleepWindow = false
         if (!prefs.motionWake) return
+        updateSleepWindow()
         main.postDelayed(idleCheck, 5_000)
+    }
+
+    /** Entrée et sortie de la plage de veille. Hors plage, la caméra frontale est coupée. */
+    private fun updateSleepWindow() {
+        val allowed = prefs.sleepAllowedNow()
+        if (allowed == inSleepWindow) return
+        inSleepWindow = allowed
+        lastActivity = System.currentTimeMillis()
+        Log.i(TAG, if (allowed) "plage de veille : début" else "plage de veille : fin")
+        if (allowed) startMotion()
+        else {
+            motion?.stop()
+            motion = null
+            wakeUp("fin de plage")
+        }
+    }
+
+    private fun startMotion() {
+        if (motion != null) return
         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             motion = MotionDetector(this) {
                 lastActivity = System.currentTimeMillis()
