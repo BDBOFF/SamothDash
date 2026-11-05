@@ -65,6 +65,22 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Le tableau de bord peut mettre du temps à charger : on réessaie pendant 30 s. */
+    private var testTries = 0
+    private val runTestAlert = object : Runnable {
+        override fun run() {
+            web?.evaluateJavascript("window.__samothTestAlert ? window.__samothTestAlert() : false") { ok ->
+                if (ok == "true" || ++testTries > 15) {
+                    prefs.testAlert = false
+                    testTries = 0
+                    if (ok != "true") {
+                        android.widget.Toast.makeText(this@MainActivity, "Aucune caméra suivie : alerte impossible", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                } else main.postDelayed(this, 2_000)
+            }
+        }
+    }
+
     private val periodicReload = object : Runnable {
         override fun run() {
             val minutes = prefs.reloadMinutes
@@ -122,6 +138,7 @@ class MainActivity : Activity() {
         else injectKiosk()
         startPresence()
         schedulePeriodicReload()
+        if (prefs.testAlert) main.postDelayed(runTestAlert, 500)
     }
 
     override fun onPause() {
@@ -417,6 +434,18 @@ class MainActivity : Activity() {
 
         private fun videoStuckNow() {
             main.post { if (prefs.watchdog && !alertActive) reloadDashboard("vidéo figée") }
+        }
+
+        @JavascriptInterface
+        fun alertInfo(names: String) {
+            prefs.alertWatched = names.take(300)
+        }
+
+        @JavascriptInterface
+        fun detection(name: String) {
+            val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date())
+            prefs.lastDetection = "${name.take(60)} à $time"
+            Log.i(TAG, "détection $name")
         }
 
         @JavascriptInterface

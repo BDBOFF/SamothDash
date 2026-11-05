@@ -47,6 +47,7 @@ class SettingsActivity : Activity() {
     private lateinit var updateTile: View
     private lateinit var updateLabel: TextView
     private lateinit var motionToggle: View
+    private lateinit var alertInfo: TextView
     private var update: UpdateInfo? = null
     private var updating = false
     private val main = Handler(Looper.getMainLooper())
@@ -62,6 +63,8 @@ class SettingsActivity : Activity() {
             statusText.text = if (connected) "Home Assistant connecté" else "Non connecté"
             statusDot.background = round(if (connected && !failed) GREEN else RED, 99)
             infoText.text = "Dernier envoi : ${prefs.lastSend.ifBlank { "aucun" }}   ·   Version ${BuildConfig.VERSION_NAME}"
+            alertInfo.text = "Caméras suivies : ${prefs.alertWatched.ifBlank { "aucune pour l'instant" }}\n" +
+                "Dernière détection vue : ${prefs.lastDetection.ifBlank { "aucune" }}"
             main.postDelayed(this, 2000)
         }
     }
@@ -263,6 +266,16 @@ class SettingsActivity : Activity() {
             addView(toggle("Relancer les flux figés", prefs.watchdog) { prefs.watchdog = it })
             addView(chips("Recharger aussi toutes les", listOf(0 to "Jamais", 15 to "15 min", 30 to "30 min", 60 to "1 h"), prefs.reloadMinutes) { prefs.reloadMinutes = it })
             addView(toggle("Alerte plein écran si personne détectée", prefs.personAlert) { prefs.personAlert = it })
+            alertInfo = text("", 12f, DIM).apply { setPadding(0, 0, 0, 6.dp()) }
+            addView(alertInfo)
+            addView(text("Tester l'alerte", 13f, TEXT, medium).apply {
+                background = glass(99, clickable = true)
+                setPadding(14.dp(), 8.dp(), 14.dp(), 8.dp())
+                setOnClickListener {
+                    prefs.testAlert = true
+                    saveAndClose()
+                }
+            }, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = 6.dp() })
             motionToggle = toggle("Veille et réveil à l'approche", prefs.motionWake) { on ->
                 prefs.motionWake = on
                 if (on && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {

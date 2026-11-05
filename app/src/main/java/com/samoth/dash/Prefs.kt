@@ -59,6 +59,17 @@ class Prefs(context: Context) {
         return if (sleepFrom < sleepTo) now in sleepFrom until sleepTo else now >= sleepFrom || now < sleepTo
     }
 
+    /** Diagnostic de l'alerte, écrit par le tableau de bord et affiché dans les réglages. */
+    var alertWatched: String
+        get() = p.getString("alertWatched", "") ?: ""
+        set(v) = p.edit().putString("alertWatched", v).apply()
+    var lastDetection: String
+        get() = p.getString("lastDetection", "") ?: ""
+        set(v) = p.edit().putString("lastDetection", v).apply()
+    var testAlert: Boolean
+        get() = p.getBoolean("testAlert", false)
+        set(v) = p.edit().putBoolean("testAlert", v).apply()
+
     var deviceName: String
         get() = p.getString("deviceName", "") ?: ""
         set(v) = p.edit().putString("deviceName", v).apply()

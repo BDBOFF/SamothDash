@@ -51,6 +51,7 @@
 
   // --- Alerte plein écran : binary_sensor.X_person_occupancy (Frigate) + camera.X ---
   var occupancy = null;
+  var watched = null;
   var overlay = null;
   var closeTimer = null;
 
@@ -101,6 +102,10 @@
       next[m[1]] = states[id].state;
       if (occupancy && occupancy[m[1]] !== 'on' && states[id].state === 'on') trigger = m[1];
     }
+    var names = Object.keys(next).sort().join(', ');
+    if (names !== watched) { watched = names; dash('alertInfo', names); }
+    // Vu par l'appli, même si l'alerte est coupée : sert au diagnostic dans les réglages
+    if (trigger) dash('detection', trigger);
     occupancy = next; // au chargement, une détection déjà en cours ne déclenche rien
     if (trigger && current.alert) showAlert(trigger, states['camera.' + trigger]);
     if (!current.alert) closeAlert();
@@ -140,6 +145,14 @@
     if (++ticks % 15 === 0) { try { checkVideos(); } catch (err) {} }
   }
   window.__samothKiosk = function (c) { current = c; tick(); };
+  // Bouton « Tester l'alerte » : affiche la première caméra suivie
+  window.__samothTestAlert = function () {
+    var ha = document.querySelector('home-assistant');
+    var states = ha && ha.hass && ha.hass.states;
+    var name = occupancy && Object.keys(occupancy).sort()[0];
+    if (states && name) { showAlert(name, states['camera.' + name]); return true; }
+    return false;
+  };
   tick();
   setInterval(tick, 1000);
 })(__CFG__);
