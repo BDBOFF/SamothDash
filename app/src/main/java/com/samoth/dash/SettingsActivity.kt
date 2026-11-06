@@ -100,7 +100,7 @@ class SettingsActivity : Activity() {
         typeface = face
     }
 
-    private fun label(s: String) = text(s, 13f, MUTED, medium).apply { setPadding(0, 14.dp(), 0, 6.dp()) }
+    private fun label(s: String) = text(s, 13f, MUTED, medium).apply { setPadding(0, 8.dp(), 0, 4.dp()) }
 
     private fun field(value: String, hintText: String = "") = EditText(this).apply {
         setText(value)
@@ -110,7 +110,7 @@ class SettingsActivity : Activity() {
         setTextColor(TEXT)
         setHintTextColor(DIM)
         isSingleLine = true
-        setPadding(14.dp(), 12.dp(), 14.dp(), 12.dp())
+        setPadding(12.dp(), 8.dp(), 12.dp(), 8.dp())
         background = round(FIELD, 12, GLASS_LINE)
         setOnFocusChangeListener { v, focus ->
             v.background = round(FIELD, 12, if (focus) RED else GLASS_LINE)
@@ -127,8 +127,8 @@ class SettingsActivity : Activity() {
         }
         return LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 8.dp(), 0, 8.dp())
-            addView(text(s, 15f), LinearLayout.LayoutParams(0, -2, 1f))
+            setPadding(0, 3.dp(), 0, 3.dp())
+            addView(text(s, 14f), LinearLayout.LayoutParams(0, -2, 1f))
             addView(sw)
             setOnClickListener { sw.toggle() }
         }
@@ -146,7 +146,7 @@ class SettingsActivity : Activity() {
         }
         options.forEach { (v, label) ->
             val t = text(label, 13f, MUTED, medium).apply {
-                setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
+                setPadding(10.dp(), 4.dp(), 10.dp(), 4.dp())
                 setOnClickListener {
                     selected = v
                     set(v)
@@ -157,7 +157,7 @@ class SettingsActivity : Activity() {
             row.addView(t, LinearLayout.LayoutParams(-2, -2).apply { marginStart = 6.dp() })
         }
         paint()
-        return row.apply { setPadding(0, 4.dp(), 0, 8.dp()) }
+        return row.apply { setPadding(0, 2.dp(), 0, 3.dp()) }
     }
 
     private fun hhmm(minutes: Int) = String.format("%02d:%02d", minutes / 60, minutes % 60)
@@ -165,7 +165,7 @@ class SettingsActivity : Activity() {
     /** Pastille qui ouvre le choix de l'heure. */
     private fun timeChip(value: Int, set: (Int) -> Unit) = text(hhmm(value), 14f, TEXT, medium).apply {
         background = glass(99, clickable = true)
-        setPadding(16.dp(), 8.dp(), 16.dp(), 8.dp())
+        setPadding(12.dp(), 4.dp(), 12.dp(), 4.dp())
         var current = value
         setOnClickListener {
             TimePickerDialog(this@SettingsActivity, android.R.style.Theme_Material_Dialog_Alert, { _, h, m ->
@@ -178,7 +178,7 @@ class SettingsActivity : Activity() {
 
     private fun scheduleRow() = LinearLayout(this).apply {
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(0, 4.dp(), 0, 8.dp())
+        setPadding(0, 2.dp(), 0, 3.dp())
         addView(text("Veille active", 14f, MUTED), LinearLayout.LayoutParams(0, -2, 1f))
         addView(text("de", 14f, MUTED).apply { setPadding(0, 0, 8.dp(), 0) })
         addView(timeChip(prefs.sleepFrom) { prefs.sleepFrom = it })
@@ -189,25 +189,29 @@ class SettingsActivity : Activity() {
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         background = glass(22)
-        setPadding(20.dp(), 18.dp(), 20.dp(), 18.dp())
+        if (resources.configuration.screenWidthDp >= 720) setPadding(16.dp(), 10.dp(), 16.dp(), 8.dp())
+        else setPadding(20.dp(), 18.dp(), 20.dp(), 18.dp())
     }
 
     private fun tile(icon: Int, s: String, danger: Boolean = false, action: () -> Unit): LinearLayout {
         val tint = if (danger) DANGER else TEXT
-        val t = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = glass(16, clickable = true)
-            setPadding(16.dp(), 16.dp(), 16.dp(), 16.dp())
-            minimumHeight = 92.dp()
+        val compact = resources.configuration.screenWidthDp >= 720
+        return LinearLayout(this).apply {
+            orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            gravity = if (compact) Gravity.CENTER_VERTICAL else Gravity.NO_GRAVITY
+            background = glass(14, clickable = true)
+            if (compact) setPadding(10.dp(), 8.dp(), 8.dp(), 8.dp()) else setPadding(16.dp(), 16.dp(), 16.dp(), 16.dp())
+            minimumHeight = if (compact) 50.dp() else 92.dp()
             isClickable = true
             setOnClickListener { action() }
             addView(ImageView(this@SettingsActivity).apply {
                 setImageResource(icon)
                 imageTintList = ColorStateList.valueOf(tint)
-            }, LinearLayout.LayoutParams(26.dp(), 26.dp()))
-            addView(text(s, 14f, tint, medium).apply { setPadding(0, 12.dp(), 0, 0) })
+            }, LinearLayout.LayoutParams(if (compact) 20.dp() else 26.dp(), if (compact) 20.dp() else 26.dp()))
+            addView(text(s, if (compact) 12f else 14f, tint, medium).apply {
+                if (compact) setPadding(8.dp(), 0, 0, 0) else setPadding(0, 12.dp(), 0, 0)
+            })
         }
-        return t
     }
 
     @Suppress("DEPRECATION")
@@ -242,7 +246,7 @@ class SettingsActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             addView(LinearLayout(this@SettingsActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(text("SAMOTH DASH", 26f, TEXT, title))
+                addView(text("SAMOTH DASH", if (wide) 22f else 26f, TEXT, title))
                 addView(text("Réglages de la tablette", 13f, MUTED))
             }, LinearLayout.LayoutParams(0, -2, 1f))
             addView(pill)
@@ -260,7 +264,7 @@ class SettingsActivity : Activity() {
             addView(label("Nom dans Home Assistant (à la 1re connexion)"))
             addView(name)
             addView(View(this@SettingsActivity).apply { setBackgroundColor(GLASS_LINE) },
-                LinearLayout.LayoutParams(-1, 1.dp()).apply { topMargin = 16.dp(); bottomMargin = 8.dp() })
+                LinearLayout.LayoutParams(-1, 1.dp()).apply { topMargin = 10.dp(); bottomMargin = 4.dp() })
             addView(toggle("Masquer la barre de gauche", prefs.hideSidebar) { prefs.hideSidebar = it })
             addView(toggle("Masquer la barre du haut", prefs.hideHeader) { prefs.hideHeader = it })
             addView(toggle("Garder l'écran allumé", prefs.keepScreenOn) { prefs.keepScreenOn = it })
@@ -275,7 +279,7 @@ class SettingsActivity : Activity() {
             addView(alertInfo)
             addView(text("Tester l'alerte", 13f, TEXT, medium).apply {
                 background = glass(99, clickable = true)
-                setPadding(14.dp(), 8.dp(), 14.dp(), 8.dp())
+                setPadding(12.dp(), 5.dp(), 12.dp(), 5.dp())
                 setOnClickListener {
                     prefs.testAlert = true
                     saveAndClose()
@@ -297,7 +301,7 @@ class SettingsActivity : Activity() {
         val primary = LinearLayout(this).apply {
             gravity = Gravity.CENTER
             background = glass(16, clickable = true, color = RED, line = RED)
-            setPadding(16.dp(), 16.dp(), 16.dp(), 16.dp())
+            if (wide) setPadding(12.dp(), 10.dp(), 12.dp(), 10.dp()) else setPadding(16.dp(), 16.dp(), 16.dp(), 16.dp())
             isClickable = true
             setOnClickListener { saveAndClose() }
             addView(ImageView(this@SettingsActivity).apply {
@@ -309,7 +313,7 @@ class SettingsActivity : Activity() {
         updateLabel = (updateTile as LinearLayout).getChildAt(1) as TextView
         updateTile.visibility = View.GONE
         val grid = GridLayout(this).apply {
-            columnCount = 2
+            columnCount = if (wide) 3 else 2
             val tiles = listOf(
                 tile(R.drawable.ic_tablet, "Paramètres Android") { startActivity(Intent(Settings.ACTION_SETTINGS)) },
                 tile(R.drawable.ic_battery, "Envoi en veille") { askBatteryExemption() },
@@ -326,39 +330,53 @@ class SettingsActivity : Activity() {
                     GridLayout.spec(GridLayout.UNDEFINED, 1f),
                 ).apply {
                     width = 0
-                    setMargins(5.dp(), 5.dp(), 5.dp(), 5.dp())
+                    val m = if (wide) 4.dp() else 5.dp()
+                    setMargins(m, m, m, m)
                 })
             }
         }
+        val gridParams = LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = 7.dp()
+            marginStart = (-4).dp()
+            marginEnd = (-4).dp()
+        }
+        infoText = text("", 12f, DIM)
+        val hint = text("Pour revenir ici : glisser du bord gauche de l'écran vers la droite", 12f, DIM)
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(primary)
-            addView(monitor, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 12.dp() })
-            addView(grid, LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = 7.dp()
-                marginStart = (-5).dp()
-                marginEnd = (-5).dp()
-            })
+            addView(monitor, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10.dp() })
+            if (wide) {
+                addView(infoText, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10.dp() })
+                addView(hint)
+            } else addView(grid, gridParams)
+        }
+        // Sur tablette, les tuiles passent à gauche pour que tout tienne sans défiler
+        val left = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(config)
+            if (wide) addView(grid, gridParams)
         }
 
         val columns = LinearLayout(this).apply {
             orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
             if (wide) {
-                addView(config, LinearLayout.LayoutParams(0, -2, 1.15f).apply { marginEnd = 18.dp() })
+                addView(left, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = 16.dp() })
                 addView(actions, LinearLayout.LayoutParams(0, -2, 1f))
             } else {
-                addView(config)
+                addView(left)
                 addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 16.dp() })
             }
         }
-        infoText = text("", 12f, DIM)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32.dp(), 28.dp(), 32.dp(), 24.dp())
+            if (wide) setPadding(24.dp(), 12.dp(), 24.dp(), 8.dp()) else setPadding(32.dp(), 28.dp(), 32.dp(), 24.dp())
             addView(header)
-            addView(columns, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 22.dp() })
-            addView(infoText, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 16.dp() })
-            addView(text("Pour revenir ici : glisser du bord gauche de l'écran vers la droite", 12f, DIM))
+            addView(columns, LinearLayout.LayoutParams(-1, -2).apply { topMargin = if (wide) 10.dp() else 22.dp() })
+            if (!wide) {
+                addView(infoText, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 16.dp() })
+                addView(hint)
+            }
         }
 
         // Grande signature transparente en fond, comme sur Samoth Home
