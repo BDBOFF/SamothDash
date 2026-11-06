@@ -347,15 +347,17 @@ class SettingsActivity : Activity() {
             addView(primary)
             addView(monitor, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10.dp() })
             if (wide) {
-                addView(infoText, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10.dp() })
-                addView(hint)
+                addView(infoText, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 8.dp() })
             } else addView(grid, gridParams)
         }
         // Sur tablette, les tuiles passent à gauche pour que tout tienne sans défiler
         val left = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(config)
-            if (wide) addView(grid, gridParams)
+            if (wide) {
+                addView(grid, gridParams)
+                addView(hint, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 6.dp() })
+            }
         }
 
         val columns = LinearLayout(this).apply {
