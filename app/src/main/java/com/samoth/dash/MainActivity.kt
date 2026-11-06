@@ -154,8 +154,8 @@ class MainActivity : Activity() {
                 if (pageFailed || networkLost) {
                     networkLost = false
                     if (!alertActive && web != null) {
-                        Log.i(TAG, "réseau revenu : rechargement")
-                        openDashboard()
+                        // Wi-Fi instable : pas plus d'un rechargement toutes les 2 minutes si la page tient
+                        if (pageFailed) openDashboard() else reloadDashboard("réseau revenu")
                     }
                 }
             }
