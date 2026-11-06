@@ -1,0 +1,3 @@
+  mCurrentFocus=Window{c7306fb u0 com.samoth.dash/com.samoth.dash.SettingsActivity}
+Physical size: 2560x1800
+Override size: 1280x800
