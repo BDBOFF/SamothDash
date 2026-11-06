@@ -11,6 +11,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
@@ -42,6 +45,18 @@ class BatteryService : Service() {
     private lateinit var handler: Handler
     private var last: BatteryState? = null
     private var declared = false
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    /** Note les coupures et renvoie la batterie dès le retour du réseau. */
+    private val netCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            prefs.logNet("réseau revenu")
+            handler.post { send(force = true) }
+        }
+        override fun onLost(network: Network) {
+            prefs.logNet("réseau perdu")
+        }
+    }
 
     private val tick = object : Runnable {
         override fun run() {
@@ -63,6 +78,11 @@ class BatteryService : Service() {
         prefs = Prefs(this)
         client = HaClient(prefs)
         goForeground()
+        // Empêche Android de mettre le Wi-Fi en économie d'énergie, surtout la nuit
+        @Suppress("DEPRECATION")
+        wifiLock = (applicationContext.getSystemService(WIFI_SERVICE) as WifiManager)
+            .createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "samothdash:wifi")
+            .apply { setReferenceCounted(false); acquire() }
         thread = HandlerThread("battery").apply { start() }
         handler = Handler(thread.looper)
         val filter = IntentFilter().apply {
@@ -71,6 +91,7 @@ class BatteryService : Service() {
             addAction(Intent.ACTION_POWER_DISCONNECTED)
         }
         registerReceiver(batteryReceiver, filter)
+        runCatching { getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(netCallback) }
         handler.post(tick)
     }
 
@@ -83,6 +104,8 @@ class BatteryService : Service() {
 
     override fun onDestroy() {
         unregisterReceiver(batteryReceiver)
+        runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(netCallback) }
+        runCatching { wifiLock?.release() }
         handler.removeCallbacksAndMessages(null)
         thread.quitSafely()
         super.onDestroy()
@@ -117,7 +140,7 @@ class BatteryService : Service() {
         } catch (e: Exception) {
             // Réseau coupé ou HA en redémarrage : on retentera à la prochaine minute
             declared = false
-            prefs.lastSend = "Échec : ${e.message ?: e.javaClass.simpleName}"
+            prefs.lastSend = "Échec à ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())} : ${e.message ?: e.javaClass.simpleName}"
         } finally {
             if (lock.isHeld) lock.release()
         }

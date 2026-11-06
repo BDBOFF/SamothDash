@@ -60,9 +60,14 @@ class SettingsActivity : Activity() {
         override fun run() {
             val connected = prefs.refreshToken != null
             val failed = prefs.lastSend.startsWith("Échec")
-            statusText.text = if (connected) "Home Assistant connecté" else "Non connecté"
+            statusText.text = when {
+                !connected -> "Non connecté"
+                failed -> "Home Assistant injoignable"
+                else -> "Home Assistant connecté"
+            }
             statusDot.background = round(if (connected && !failed) GREEN else RED, 99)
-            infoText.text = "Dernier envoi : ${prefs.lastSend.ifBlank { "aucun" }}   ·   Version ${BuildConfig.VERSION_NAME}"
+            infoText.text = "Dernier envoi : ${prefs.lastSend.ifBlank { "aucun" }}   ·   Version ${BuildConfig.VERSION_NAME}" +
+                prefs.netHistory.takeIf { it.isNotBlank() }?.let { "\nRéseau : $it" }.orEmpty()
             alertInfo.text = "Caméras suivies : ${prefs.alertWatched.ifBlank { "aucune pour l'instant" }}\n" +
                 "Dernière détection vue : ${prefs.lastDetection.ifBlank { "aucune" }}"
             main.postDelayed(this, 2000)

@@ -85,6 +85,15 @@ class Prefs(context: Context) {
     var webhookId: String?
         get() = p.getString("webhook", null)
         set(v) = p.edit().putString("webhook", v).apply()
+    /** Dernières pertes et retours du réseau, pour le diagnostic dans les réglages. */
+    var netHistory: String
+        get() = p.getString("netHistory", "") ?: ""
+        set(v) = p.edit().putString("netHistory", v).apply()
+    fun logNet(event: String) {
+        val time = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.FRANCE).format(java.util.Date())
+        netHistory = (listOf("$event $time") + netHistory.split(" · ").filter { it.isNotBlank() }).take(4).joinToString(" · ")
+    }
+
     var lastSend: String
         get() = p.getString("lastSend", "") ?: ""
         set(v) = p.edit().putString("lastSend", v).apply()

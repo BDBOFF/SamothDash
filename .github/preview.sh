@@ -54,14 +54,13 @@ python3 .github/e2e/ha.py off
 sleep 32
 shot 2b-fin-alerte; logs
 
-say "2c. Bouton Tester l'alerte"
-adb shell am force-stop $PKG
-prefs false 0
-adb shell "run-as $PKG sh -c 'sed -i s,\</map\>,\<boolean\ name=\"testAlert\"\ value=\"true\"\ /\>\</map\>, shared_prefs/dash.xml'"
-adb shell am start -n $PKG/.MainActivity
-sleep 25
+say "2c. Bouton Tester l'alerte (appui réel)"
+adb shell input swipe 5 1200 900 1200 300
+sleep 3
+adb shell input tap 1130 850
+sleep 6
 shot 2c-test-alerte; logs
-sleep 35
+sleep 32
 adb shell input swipe 5 1200 900 1200 300
 sleep 3
 shot 2d-diagnostic-reglages
@@ -93,6 +92,26 @@ prefs false 1
 adb shell am start -n $PKG/.MainActivity
 sleep 150
 shot 4-apres-rechargement; logs
+
+say "4b. Coupure réseau pendant 40 s, puis retour : rechargement automatique"
+adb shell input swipe 5 1200 900 1200 300
+sleep 3
+adb shell input tap 1350 270
+sleep 3
+adb shell svc wifi disable
+adb shell svc data disable
+adb shell settings put global airplane_mode_on 1
+adb shell am broadcast -a android.intent.action.AIRPLANE_MODE >/dev/null 2>&1
+sleep 5
+adb shell "su 0 am start -n $PKG/.MainActivity" >/dev/null 2>&1 || true
+sleep 40
+shot 4b-reseau-coupe
+adb shell settings put global airplane_mode_on 0
+adb shell am broadcast -a android.intent.action.AIRPLANE_MODE >/dev/null 2>&1
+adb shell svc wifi enable
+adb shell svc data enable
+sleep 40
+shot 4c-reseau-revenu; logs
 
 say "5. Réglages"
 adb shell input swipe 5 1200 900 1200 300

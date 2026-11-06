@@ -141,6 +141,28 @@ class MainActivity : Activity() {
         if (prefs.testAlert) main.postDelayed(runTestAlert, 500)
     }
 
+    /** Le réseau revient : on recharge tout de suite si la page était en erreur. */
+    private val netCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: android.net.Network) {
+            main.post {
+                if (pageFailed) {
+                    Log.i(TAG, "réseau revenu : rechargement")
+                    openDashboard()
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        runCatching { getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(netCallback) }
+    }
+
+    override fun onStop() {
+        runCatching { getSystemService(android.net.ConnectivityManager::class.java).unregisterNetworkCallback(netCallback) }
+        super.onStop()
+    }
+
     override fun onPause() {
         main.removeCallbacks(idleCheck)
         main.removeCallbacks(periodicReload)
@@ -390,7 +412,6 @@ class MainActivity : Activity() {
             request.isForMainFrame && intercept(request.url)
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-            pageFailed = false
         }
 
         override fun onPageFinished(view: WebView, url: String) {
