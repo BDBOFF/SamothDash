@@ -55,6 +55,7 @@ class MainActivity : Activity() {
     private var lastReload = 0L
     private var motion: MotionDetector? = null
     private var inSleepWindow = false
+    private var networkLost = false
 
     private val idleCheck = object : Runnable {
         override fun run() {
@@ -143,11 +144,19 @@ class MainActivity : Activity() {
 
     /** Le réseau revient : on recharge tout de suite si la page était en erreur. */
     private val netCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+        override fun onLost(network: android.net.Network) {
+            main.post { networkLost = true }
+        }
+
         override fun onAvailable(network: android.net.Network) {
             main.post {
-                if (pageFailed) {
-                    Log.i(TAG, "réseau revenu : rechargement")
-                    openDashboard()
+                // Après une coupure, les flux vidéo peuvent rester vides même si la page semble chargée
+                if (pageFailed || networkLost) {
+                    networkLost = false
+                    if (!alertActive && web != null) {
+                        Log.i(TAG, "réseau revenu : rechargement")
+                        openDashboard()
+                    }
                 }
             }
         }
