@@ -94,6 +94,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
         client = HaClient(prefs)
+        // Si Android a fermé l'appli puis l'a relancée, ça apparaîtra dans le journal des rechargements
+        prefs.logReload("démarrage de l'appli")
         root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
         message = TextView(this).apply {
             setTextColor(Color.WHITE)
