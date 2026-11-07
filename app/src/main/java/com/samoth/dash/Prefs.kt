@@ -94,6 +94,15 @@ class Prefs(context: Context) {
         netHistory = (listOf("$event $time") + netHistory.split(" · ").filter { it.isNotBlank() }).take(4).joinToString(" · ")
     }
 
+    /** Derniers rechargements du tableau de bord et leur raison. */
+    var reloadHistory: String
+        get() = p.getString("reloadHistory", "") ?: ""
+        set(v) = p.edit().putString("reloadHistory", v).apply()
+    fun logReload(reason: String) {
+        val time = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.FRANCE).format(java.util.Date())
+        reloadHistory = (listOf("$reason $time") + reloadHistory.split(" · ").filter { it.isNotBlank() }).take(5).joinToString(" · ")
+    }
+
     var lastSend: String
         get() = p.getString("lastSend", "") ?: ""
         set(v) = p.edit().putString("lastSend", v).apply()

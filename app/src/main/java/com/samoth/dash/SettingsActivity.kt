@@ -67,7 +67,8 @@ class SettingsActivity : Activity() {
             }
             statusDot.background = round(if (connected && !failed) GREEN else RED, 99)
             infoText.text = "Dernier envoi : ${prefs.lastSend.ifBlank { "aucun" }}   ·   Version ${BuildConfig.VERSION_NAME}" +
-                prefs.netHistory.takeIf { it.isNotBlank() }?.let { "\nRéseau : $it" }.orEmpty()
+                prefs.netHistory.takeIf { it.isNotBlank() }?.let { "\nRéseau : $it" }.orEmpty() +
+                prefs.reloadHistory.takeIf { it.isNotBlank() }?.let { "\nRechargements : $it" }.orEmpty()
             alertInfo.text = "Caméras suivies : ${prefs.alertWatched.ifBlank { "aucune pour l'instant" }}\n" +
                 "Dernière détection vue : ${prefs.lastDetection.ifBlank { "aucune" }}"
             main.postDelayed(this, 2000)

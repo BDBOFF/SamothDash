@@ -155,7 +155,7 @@ class MainActivity : Activity() {
                     networkLost = false
                     if (!alertActive && web != null) {
                         // Wi-Fi instable : pas plus d'un rechargement toutes les 2 minutes si la page tient
-                        if (pageFailed) openDashboard() else reloadDashboard("réseau revenu")
+                        if (pageFailed) { prefs.logReload("réseau revenu"); openDashboard() } else reloadDashboard("réseau revenu")
                     }
                 }
             }
@@ -248,6 +248,7 @@ class MainActivity : Activity() {
         if (web == null || prefs.refreshToken == null || now - lastReload < MIN_RELOAD_MS) return
         lastReload = now
         Log.i(TAG, "rechargement : $reason")
+        prefs.logReload(reason)
         openDashboard()
     }
 
@@ -369,6 +370,7 @@ class MainActivity : Activity() {
     }
 
     private fun failAndRetry(text: String) {
+        if (!pageFailed) prefs.logReload("HA injoignable")
         pageFailed = true
         showMessage("$text\n\nNouvel essai automatique…\n\n(glisser depuis le bord gauche pour les réglages)")
         main.removeCallbacks(retry)
@@ -440,6 +442,7 @@ class MainActivity : Activity() {
 
         /** Le moteur web a planté : on le recrée au lieu de laisser un écran noir. */
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            prefs.logReload(if (detail.didCrash()) "moteur web planté" else "moteur web fermé (mémoire)")
             recreateWebView()
             main.postDelayed(retry, 1000)
             return true
