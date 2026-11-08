@@ -55,7 +55,7 @@ class MainActivity : Activity() {
     private var lastReload = 0L
     private var motion: MotionDetector? = null
     private var inSleepWindow = false
-    private var networkLost = false
+    private var lostAt = 0L
 
     private val idleCheck = object : Runnable {
         override fun run() {
@@ -147,18 +147,18 @@ class MainActivity : Activity() {
     /** Le réseau revient : on recharge tout de suite si la page était en erreur. */
     private val netCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onLost(network: android.net.Network) {
-            main.post { networkLost = true }
+            main.post { if (lostAt == 0L) lostAt = System.currentTimeMillis() }
         }
 
         override fun onAvailable(network: android.net.Network) {
             main.post {
-                // Après une coupure, les flux vidéo peuvent rester vides même si la page semble chargée
-                if (pageFailed || networkLost) {
-                    networkLost = false
-                    if (!alertActive && web != null) {
-                        // Wi-Fi instable : pas plus d'un rechargement toutes les 2 minutes si la page tient
-                        if (pageFailed) { prefs.logReload("réseau revenu"); openDashboard() } else reloadDashboard("réseau revenu")
-                    }
+                val offline = if (lostAt == 0L) 0L else System.currentTimeMillis() - lostAt
+                lostAt = 0L
+                // Micro-coupure : Home Assistant se reconnecte tout seul, inutile de tout recharger.
+                // On recharge seulement si la page est en erreur ou après une vraie coupure.
+                if (web != null && !alertActive) {
+                    if (pageFailed) { prefs.logReload("réseau revenu"); openDashboard() }
+                    else if (offline > LONG_OUTAGE_MS) reloadDashboard("réseau revenu après ${offline / 1000} s")
                 }
             }
         }
@@ -531,6 +531,7 @@ class MainActivity : Activity() {
     companion object {
         private const val TAG = "SamothDash"
         private const val MIN_RELOAD_MS = 2 * 60_000L
+        private const val LONG_OUTAGE_MS = 60_000L
         private const val RETRY_MS = 15_000L
         private const val EDGE_DP = 32
         private const val SWIPE_DP = 120

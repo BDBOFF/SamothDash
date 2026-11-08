@@ -26,7 +26,7 @@ class Prefs(context: Context) {
         set(v) = p.edit().putBoolean("watchdog", v).apply()
     /** Rechargement périodique en minutes, 0 = jamais. */
     var reloadMinutes: Int
-        get() = p.getInt("reloadMinutes", 60)
+        get() = p.getInt("reloadMinutes", 0)
         set(v) = p.edit().putInt("reloadMinutes", v).apply()
     /** Plein écran quand une caméra Frigate détecte une personne. */
     var personAlert: Boolean
