@@ -32,7 +32,13 @@ jobs:
           curl -fsSL --retry 4 -o app/src/main/assets/fonts/inter.ttf "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
 
       - name: Compiler l'APK
+        env:
+          SAMOTH_KEYSTORE_PASSWORD: ${{ secrets.SAMOTH_KEYSTORE_PASSWORD }}
         run: |
+          if [ -z "$SAMOTH_KEYSTORE_PASSWORD" ]; then
+            echo "::error::Secret SAMOTH_KEYSTORE_PASSWORD manquant (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace -PBUILD_NUMBER=${{ github.run_number }}
           cp app/build/outputs/apk/release/app-release.apk SamothDash.apk

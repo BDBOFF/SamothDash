@@ -4,6 +4,9 @@ plugins {
 }
 
 // Numéro de version = numéro de compilation GitHub (sert à la mise à jour intégrée)
+// Mot de passe de la clé de signature : secret GitHub SAMOTH_KEYSTORE_PASSWORD, jamais dans le dépôt
+val keystorePassword: String? = System.getenv("SAMOTH_KEYSTORE_PASSWORD")
+
 val buildNumber: Int = (project.findProperty("BUILD_NUMBER") as String?)?.toIntOrNull() ?: 1
 
 android {
@@ -21,20 +24,19 @@ android {
     signingConfigs {
         create("samoth") {
             storeFile = file("samoth-dash.jks")
-            storePassword = "samothdash2026"
+            storePassword = keystorePassword
             keyAlias = "samothdash"
-            keyPassword = "samothdash2026"
+            keyPassword = keystorePassword
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("samoth")
+            // Sans le secret (tests sur émulateur), l'APK de publication n'est pas signé
+            if (!keystorePassword.isNullOrEmpty()) signingConfig = signingConfigs.getByName("samoth")
         }
-        debug {
-            signingConfig = signingConfigs.getByName("samoth")
-        }
+        // Les tests sur émulateur utilisent la clé de débogage standard
     }
 
     compileOptions {
