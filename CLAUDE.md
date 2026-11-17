@@ -58,6 +58,8 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 - Lien fixe pour installer : `https://github.com/BDBOFF/SamothDash/releases/latest/download/SamothDash.apk`
 - Les polices sont téléchargées pendant la fabrication (`app/src/main/assets/fonts/`, ignoré par git).
 - L'APK est signé avec `app/samoth-dash.jks`. **Toujours la même clé**, sinon les mises à jour ne s'installent plus par-dessus. Ne pas la changer.
+- Le mot de passe de cette clé est dans le **secret GitHub `SAMOTH_KEYSTORE_PASSWORD`** (Settings → Secrets and variables → Actions), lu par `app/build.gradle.kts`. Sans lui, la fabrication s'arrête avec un message clair. Les tests sur émulateur n'en ont pas besoin : ils utilisent la clé de débogage standard.
+- La session Claude ne peut pas créer ni lire les secrets GitHub (accès refusé) : c'est l'utilisateur qui les crée dans l'interface.
 - Une erreur `HTTP 502` à l'étape « Publier la version » vient de GitHub : relancer suffit.
 
 ### Tests sur émulateur (lancement manuel)
@@ -95,6 +97,11 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 - Surveillance réseau dans HA : `binary_sensor.tablette_cameras_ping` (adresse de la tablette `192.168.1.154`), historique dans **Historique** ou **Activité**.
 - Réglages actuels : veille activée de 21:00 à 06:00, mise en veille après 1 min, rechargement périodique sur « Jamais ».
 
+## Sécurité du dépôt
+
+- Version 24 : le mot de passe de la clé n'est plus dans le code. **Il reste visible dans l'historique git**, avec la clé : la clé est donc à considérer comme exposée. L'utilisateur a choisi en connaissance de cause de **garder cette clé** (changer de clé oblige à désinstaller l'appli une fois). Ne pas le relancer là-dessus.
+- Vérifier que l'APK garde la même clé : exporter le certificat de `samoth-dash.jks` et vérifier qu'il figure dans l'APK publié (signature v2 seulement, pas de fichier `META-INF/*.RSA`).
+
 ## Ce qui reste à faire
 
 - **Surveiller les coupures du Wi-Fi** sur plusieurs jours. Du 9 au 10 novembre, aucune coupure ni avec HA kiosk ni avec Samoth Dash, sauf au changement d'appli. Les longues coupures du 9 au matin restent inexpliquées. Piste : réserver l'adresse de la tablette dans la box SFR (à confirmer si c'est fait).
@@ -102,4 +109,5 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 - **Idée proposée, pas faite** : démarrer l'alerte sur le dernier instantané Frigate de la personne, puis passer au direct, pour compenser le retard de détection.
 - **Capteurs en double dans HA** : `sensor.tablette_camera_batterie` et `sensor.tablette_cameras_batterie` existent tous les deux. À vérifier avec l'autre conversation lequel garder dans l'automatisation de la prise.
 - Le flux vidéo figé n'a jamais été provoqué en test réel.
+- La branche `secret-signature` (déjà fusionnée dans `main`) et la branche `apercu` peuvent être supprimées depuis GitHub : la session Claude n'a pas le droit de supprimer une branche distante.
 - Les flux MJPEG ne sont pas détectés comme figés : seul le rechargement périodique les couvre.
