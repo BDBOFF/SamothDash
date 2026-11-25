@@ -111,3 +111,16 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 - Le flux vidéo figé n'a jamais été provoqué en test réel.
 - La branche `secret-signature` (déjà fusionnée dans `main`) et la branche `apercu` peuvent être supprimées depuis GitHub : la session Claude n'a pas le droit de supprimer une branche distante.
 - Les flux MJPEG ne sont pas détectés comme figés : seul le rechargement périodique les couvre.
+
+
+## Graphify : explorer le code sans gaspiller de tokens
+Avant grep, glob ou la lecture de fichiers entiers, utilise les outils Graphify :
+- où est défini un symbole -> graphify_find, puis graphify_node
+- comment marche une fonctionnalité -> query_graph
+- qui appelle X -> graphify_callers
+- impact d'une modification -> graphify_impact (include_risk=true)
+- tests liés -> graphify_tests_for
+- dépendances d'un fichier -> graphify_file_neighbors
+Compare le commitSha renvoyé avec `git rev-parse HEAD` : identique = fais confiance au résultat, sinon relis seulement les fichiers modifiés.
+Garde grep pour du texte précis, la config et les fichiers non indexés.
+Ne lis que les lignes utiles d'un fichier, jamais un gros fichier en entier.
