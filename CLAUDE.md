@@ -62,8 +62,35 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 | `Prefs.kt` | Réglages et jetons (SharedPreferences), journaux de diagnostic |
 | `Updater.kt` | Mise à jour intégrée, reprise de SamothHOME |
 
+### Réglages fins dans le code
+
+| Valeur | Où | Actuel |
+|---|---|---|
+| Coupure du réseau avant rechargement | `MainActivity.kt` `LONG_OUTAGE_MS` | 1 min |
+| Écart minimum entre deux rechargements | `MainActivity.kt` `MIN_RELOAD_MS` | 2 min |
+| Zone et longueur du glissement vers les réglages | `MainActivity.kt` `EDGE_DP`, `SWIPE_DP` | 32 dp, 120 dp |
+| Nouvel essai si HA injoignable | `MainActivity.kt` `RETRY_MS` | 15 s |
+| Durée de l'alerte plein écran | `kiosk.js` (`setTimeout(closeAlert, 30000)`) | 30 s |
+| Vidéo considérée comme figée | `kiosk.js` `checkVideos` (contrôle toutes les 15 s, 4 fois de suite) | ~1 min |
+| Sensibilité du réveil à l'approche | `MotionDetector.kt` `CELL_DIFF`, `MIN_CELLS` (grille 16×12, 2 images de suite) | 14, 6 cases |
+| Envoi de la batterie / réveil en veille profonde | `BatteryService.kt` `PERIOD_MS`, `ALARM_MS` | 1 min, 5 min |
+
+### Explorer le code avec Graphify
+
+Dépôt indexé : `BDBOFF/SamothDash` (à passer en `repository_id`). Avant grep, glob ou la lecture de fichiers entiers, utilise les outils Graphify :
+- où est défini un symbole -> graphify_find, puis graphify_node
+- comment marche une fonctionnalité -> query_graph
+- qui appelle X -> graphify_callers
+- impact d'une modification -> graphify_impact (include_risk=true)
+- tests liés -> graphify_tests_for
+- dépendances d'un fichier -> graphify_file_neighbors
+Compare le commitSha renvoyé avec `git rev-parse HEAD` : identique = fais confiance au résultat, sinon relis seulement les fichiers modifiés.
+Garde grep pour du texte précis, la config et les fichiers non indexés.
+Ne lis que les lignes utiles d'un fichier, jamais un gros fichier en entier.
+
 ## Fabrication et publication de l'APK
 
+- **Pas de SDK Android dans la session Claude** : inutile d'essayer de compiler sur place. L'APK se fabrique uniquement sur GitHub Actions, et l'appli se teste avec `/test-emulateur`.
 - Tout push sur `main` lance `.github/workflows/build.yml` : compilation, puis Release `build-N` avec `SamothDash.apk`.
 - **Numéro de version = numéro de lancement du workflow** (`-PBUILD_NUMBER`). La mise à jour intégrée compare ce numéro au tag `build-N`.
 - Lien fixe pour installer : `https://github.com/BDBOFF/SamothDash/releases/latest/download/SamothDash.apk`
@@ -92,6 +119,8 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 
 ## Bugs déjà corrigés (et pièges à éviter)
 
+- **Coupures du Wi-Fi de la tablette** (novembre) : réglées par la réservation de l'adresse dans la box et la version 22. Si des écrans noirs reviennent, comparer l'heure avec `binary_sensor.tablette_cameras_ping` et la ligne **Rechargements** des réglages.
+
 - **Barre de gauche toujours visible** sur HA récents (2026.11) : la structure avait changé. Toujours tester sur la **dernière version** de HA, pas une ancienne.
 - **Alerte invisible** sur les WebView anciennes : `inset:0` n'est pas compris, il faut `top/left/right/bottom:0`.
 - **Le Wi-Fi de la tablette se coupait** pendant que l'appli tournait : un `WifiLock` en mode haute performance était soupçonné. Il a été retiré (version 17). **Ne pas le remettre.**
@@ -106,6 +135,8 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 - Caméras Frigate : `camera_entree`, `camera_jardin`, `camera_jardin_2`, `camera_voiture` (capteurs `binary_sensor.<nom>_person_occupancy`).
 - Une seconde tablette (Redmi, Fully Kiosk) affiche un autre dashboard et n'a pas de souci de Wi-Fi.
 - Surveillance réseau dans HA : `binary_sensor.tablette_cameras_ping` (adresse de la tablette `192.168.1.154`), historique dans **Historique** ou **Activité**.
+- Adresse `192.168.1.154` **réservée dans la box SFR** (fait). Depuis, plus d'écran noir (confirmé le 26 novembre).
+- Les caméras passent parfois « hors ligne » quelques secondes, surtout par mauvais temps : ça vient des caméras elles-mêmes, pas de l'appli. Ne pas chercher dans l'appli pour ça.
 - Réglages actuels : veille activée de 21:00 à 06:00, mise en veille après 1 min, rechargement périodique sur « Jamais ».
 
 ## Sécurité du dépôt
@@ -115,23 +146,9 @@ Kotlin, sans Compose (vues Android classiques), minSdk 26, package `com.samoth.d
 
 ## Ce qui reste à faire
 
-- **Surveiller les coupures du Wi-Fi** sur plusieurs jours. Du 9 au 10 novembre, aucune coupure ni avec HA kiosk ni avec Samoth Dash, sauf au changement d'appli. Les longues coupures du 9 au matin restent inexpliquées. Piste : réserver l'adresse de la tablette dans la box SFR (à confirmer si c'est fait).
 - **Réglage du réveil à l'approche** : seuils estimés (`CELL_DIFF`, `MIN_CELLS` dans `MotionDetector.kt`). Ça fonctionne chez l'utilisateur, à ajuster s'il se plaint.
 - **Idée proposée, pas faite** : démarrer l'alerte sur le dernier instantané Frigate de la personne, puis passer au direct, pour compenser le retard de détection.
 - **Capteurs en double dans HA** : `sensor.tablette_camera_batterie` et `sensor.tablette_cameras_batterie` existent tous les deux. À vérifier avec l'autre conversation lequel garder dans l'automatisation de la prise.
 - Le flux vidéo figé n'a jamais été provoqué en test réel.
 - La branche `secret-signature` (déjà fusionnée dans `main`) et la branche `apercu` peuvent être supprimées depuis GitHub : la session Claude n'a pas le droit de supprimer une branche distante.
 - Les flux MJPEG ne sont pas détectés comme figés : seul le rechargement périodique les couvre.
-
-
-## Graphify : explorer le code sans gaspiller de tokens
-Avant grep, glob ou la lecture de fichiers entiers, utilise les outils Graphify :
-- où est défini un symbole -> graphify_find, puis graphify_node
-- comment marche une fonctionnalité -> query_graph
-- qui appelle X -> graphify_callers
-- impact d'une modification -> graphify_impact (include_risk=true)
-- tests liés -> graphify_tests_for
-- dépendances d'un fichier -> graphify_file_neighbors
-Compare le commitSha renvoyé avec `git rev-parse HEAD` : identique = fais confiance au résultat, sinon relis seulement les fichiers modifiés.
-Garde grep pour du texte précis, la config et les fichiers non indexés.
-Ne lis que les lignes utiles d'un fichier, jamais un gros fichier en entier.
