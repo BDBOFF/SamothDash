@@ -15,6 +15,8 @@ Si la fabrication échoue, corriger et recommencer avant de dire que c'est fini.
 
 Pour appliquer cette règle, utiliser la skill **`/publier`** (`.claude/skills/publier/`).
 
+**En fin de session où du code a changé** : proposer à l'utilisateur les mises à jour de ce fichier (sous forme de liste ou de diff), en plus de celles déjà faites au point 3. Il valide avant qu'elles soient appliquées.
+
 ## Automatisations Claude Code (`.claude/`)
 
 - **Garde-secrets** (`hooks/garde-secrets.py`, avant chaque écriture et chaque `git commit`/`git push`) : bloque un mot de passe de signature en clair, un jeton GitHub, une clé privée ou un jeton Home Assistant. Si le hook bloque, ne pas le contourner : passer par un secret GitHub.
