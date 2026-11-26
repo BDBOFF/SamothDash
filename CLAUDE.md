@@ -13,7 +13,16 @@ Ce fichier sert à reprendre le projet sans avoir suivi les conversations préc�
 
 Si la fabrication échoue, corriger et recommencer avant de dire que c'est fini.
 
-## Préférences de l'utilisateur
+Pour appliquer cette règle, utiliser la skill **`/publier`** (`.claude/skills/publier/`).
+
+## Automatisations Claude Code (`.claude/`)
+
+- **Garde-secrets** (`hooks/garde-secrets.py`, avant chaque écriture et chaque `git commit`/`git push`) : bloque un mot de passe de signature en clair, un jeton GitHub, une clé privée ou un jeton Home Assistant. Si le hook bloque, ne pas le contourner : passer par un secret GitHub.
+- **Vérification de `kiosk.js`** (`hooks/verif-kiosk.py`, après chaque modification de ce fichier) : syntaxe (`node --check`), pas de `inset:` ni de syntaxe récente (`?.`, `??`, `=>`), à cause des WebView anciennes.
+- **`/publier`** : commit, push, suivi de la fabrication, vérification de la Release et de la clé, mise à jour de ce fichier.
+- **`/test-emulateur`** : lance le test complet sur émulateur ou la capture des réglages, puis lit les résultats sur la branche `apercu`.
+
+
 
 - **Toujours en français**, avec des explications simples, sans jargon. Il n'est pas développeur.
 - Être **précis sur où cliquer** : nom exact du bouton, emplacement à l'écran, sur quel appareil (tablette ou Home Assistant).
