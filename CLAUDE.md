@@ -22,7 +22,7 @@ Pour appliquer cette règle, utiliser la skill **`/publier`** (`.claude/skills/p
 - **`/publier`** : commit, push, suivi de la fabrication, vérification de la Release et de la clé, mise à jour de ce fichier.
 - **`/test-emulateur`** : lance le test complet sur émulateur ou la capture des réglages, puis lit les résultats sur la branche `apercu`.
 
-
+## Préférences de l'utilisateur
 
 - **Toujours en français**, avec des explications simples, sans jargon. Il n'est pas développeur.
 - Être **précis sur où cliquer** : nom exact du bouton, emplacement à l'écran, sur quel appareil (tablette ou Home Assistant).
